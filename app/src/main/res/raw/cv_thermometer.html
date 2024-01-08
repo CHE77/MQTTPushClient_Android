@@ -8,6 +8,8 @@
    body {margin: 0; padding: 0;}
    #thermometer {float: left; visibility: hidden;}
    #thermo_label {display: table-cell; vertical-align: middle;}
+   #thermo_label2 {position: fixed; top: 0px; left: 0px;}
+   #thermo_label3 {position: fixed; bottom: 0px !important; left: 0px;}
   </style>
 
   <script>
@@ -15,25 +17,47 @@
    var THERMO_FILL_COLOR = "#FF0000";
    var fillPC = 0;
 
+   var g_settings = new Object();
+
    function onMqttInit(account, view) {
      var canv = document.getElementById('thermometer');
      canv.style.visibility = "visible";
      window.addEventListener('resize', onMqttResize);
+     /* get parameters and overide default settings */
+     // var p = parseParameters(view.getParameters());
+
+     // g_settings['y_min'] = 'ymin' in p ? Number(p['ymin']) : -20;
+     // g_settings['y_max'] = 'ymax' in p ? Number(p['ymax']) : 60;
+     g_settings['y_min'] = -20;
+     g_settings['y_max'] = 60;
+
      onMqttResize();
    }
 
    function onMqttMessage(msg) {
      var temp = Number(msg.text);
+     var Y_MIN = g_settings['y_min'];
+     var Y_MAX = g_settings['y_max'];
      var thermo_label = document.getElementById('thermo_label');
+    
      thermo_label.innerHTML = temp + '°C';
-     if (temp < -30) {
-       temp = -30;
-     } else if (temp > 50) {
-       temp = 50;
-     }
-     temp += 30;
-     /* set new value */
-     fillPC = temp / 80
+    
+     var thermo_label2 = document.getElementById('thermo_label2');
+     thermo_label2.innerHTML = Y_MAX + '°C';
+     thermo_label2.style.fontSize = "xx-small";
+
+     var thermo_label3 = document.getElementById('thermo_label3');
+     thermo_label3.innerHTML = Y_MIN + '°C';
+     thermo_label3.style.fontSize = "xx-small";
+
+            if (temp < Y_MIN) {
+                temp = Y_MIN;
+            } else if (temp > Y_MAX) {
+                temp = Y_MAX;
+            }
+            temp += -Y_MIN;
+            /* set new value */
+     fillPC = temp / (Y_MAX - Y_MIN);
      onMqttResize();
    }
 
@@ -44,6 +68,8 @@
 
      var canv = document.getElementById('thermometer');
      var thermo_label = document.getElementById('thermo_label');
+     var thermo_label2 = document.getElementById('thermo_label2');
+     var thermo_label3 = document.getElementById('thermo_label3');
      var a = Math.min(window.innerWidth, window.innerHeight);
 
      canv.style.marginLeft = Math.round(a * .05) + "px";
@@ -51,6 +77,8 @@
      canv.style.width = Math.round(a * .9 * .4) + "px";
      canv.style.height = Math.round(a * .9) + "px";
      thermo_label.style.height = window.innerHeight + "px";
+     thermo_label2.style.height = window.innerHeight + "px";
+     thermo_label3.style.height = window.innerHeight + "px";
 
      /* multiply canvas dimensions with window.devicePixelRatio for sharper images */
      canv.width = '' + Math.round(a * .9 * .4 * window.devicePixelRatio);
@@ -59,6 +87,8 @@
      /* increase font size when component is displayed in detail view */
      if (MQTT.view.isDialog()) {
        thermo_label.style.fontSize = "x-large";
+       thermo_label2.style.fontSize = "xx-small";
+       thermo_label3.style.fontSize = "xx-small";  
      }
 
      draw(fillPC);
@@ -128,7 +158,9 @@
  <body>
   <div id="visible_area">
    <canvas id="thermometer" width="25" height="100"></canvas>
+   <div id="thermo_label2"></div>
    <div id="thermo_label"></div>
+   <div id="thermo_label3"></div>
   </div>
  </body>
 </html>
